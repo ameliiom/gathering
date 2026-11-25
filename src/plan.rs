@@ -33,7 +33,7 @@ pub fn block_in(host: &dyn Host, block: &str, tag: &str) -> bool {
     host.registry_entry("minecraft:block", block).and_then(|e| host.registry_entry_in_tag(&e, tag)).unwrap_or(false)
 }
 
-fn item_in(host: &dyn Host, item: &str, tag: &str) -> bool {
+pub fn item_in(host: &dyn Host, item: &str, tag: &str) -> bool {
     host.registry_entry("minecraft:item", item).and_then(|e| host.registry_entry_in_tag(&e, tag)).unwrap_or(false)
 }
 

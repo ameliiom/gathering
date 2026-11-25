@@ -116,3 +116,40 @@ Blocks break 32 a tick from the next tick on, so a 64-ore vein takes two ticks.
 2. Right-click harvest (the forked Right-Click Crops, native) and Wide Harvest.
 3. Leaf Blower, Into The Bag, and an outline of what will break while you mine (as FTB Ultimine
    shows), drawn in the game's own block-outline look.
+
+## 10. Batch 2 and the saplings (0.3.0), measured in the game (2026-11-26)
+
+Five more comforts, each a node of the Gathering tree (vanilla tags, as before) and each with its
+own on/off in the mod's settings (on by default, still to be earned): Auto-Smelt (`gathering.smelt`,
+after Vein Miner III), Self-Planting Saplings (`gathering.saplings`, after Leaf Blower), Wide
+Planting I/II and Whole Field (`gathering.plant.3/5/field`, a row under Wide Harvest), Ranch
+I/II/III (`gathering.ranch.3/5/7`) and Auto-Fishing (`gathering.fishing`). The tree also grows from
+animals bred (1) and fish caught (2).
+
+| What | Result |
+|---|---|
+| Auto-Smelt, Vein Miner I, 6-ore iron vein (stone and deepslate) | 6 iron ingots, 4 experience (0.7 × 6, the 0.2 left carried to the next ore) |
+| Auto-Smelt with Fortune III, single ores | 3, 3, 4, 1, 1, 1 ingots: each drop smelted count for count |
+| Auto-Smelt with Into The Bag, 4-ore vein | 9 ingots in the inventory, no raw iron |
+| Sneaking, Fortune III | 2 raw iron: not smelted |
+| Wide Planting I (3×3), 7×7 farmland, 20 seeds | 9 wheat planted, 9 seeds paid |
+| Whole Field, fresh 7×7, 64 seeds / 5 seeds | 49 planted, 49 paid / 5 planted, none left |
+| Ranch I, 7 cows (5 adults within 3 blocks, 1 at 6, 1 calf), 10 wheat | the 5 near adults in love, 5 wheat paid; the far cow and the calf left |
+| Ranch I, shears on one of 4 sheep (plus one far, one already shorn) | the 4 near sheep shorn, the far one kept its wool, shears worn |
+| Auto-Fishing, Lure III, 3 bites | 3 cod in the inventory, bobber gone each time, rod damage 1 a catch, 2 experience, `fish_caught` +1 a fish |
+
+How each works:
+- **Auto-Smelt** changes the drops in `block_drops` (the level's own hook, before anything
+  spawns): a block of `#gathering:veins` broken by a player who chose it at `break_block` time.
+  The furnace's recipes are read from `recipes_of_type("minecraft:smelting")` once per reload.
+- **Wide Planting** runs beside the game's own planting of the farmland clicked: joined empty
+  farmland on the same level (`shape::joined`), within the square, one seed each from other slots
+  first, the hand's last seed left for the game's click.
+- **Ranch** follows the game: the tick after a feeding or a shearing, if the animal clicked was
+  fed (in love) or shorn, the same kind around it is done too (`InLove` 600 with the player as
+  `LoveCause`, so the breeding is theirs; wool from `minecraft:shearing/sheep/<colour>`, since the
+  `shearing/sheep` dispatcher rolls nothing from a mod's roll, measured). Shears stop one use
+  before breaking.
+- **Auto-Fishing** cancels the bite (`player_fish` state 1) and, the next tick, rolls
+  `minecraft:gameplay/fishing` at the bobber with the bobber as the loot entity (open-water
+  treasure kept) and the rod as tool. Luck of the Sea's bonus is not added (the roll has no luck).

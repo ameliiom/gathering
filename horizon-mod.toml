@@ -1,6 +1,6 @@
 id = "gathering"
 name = "Gathering"
-version = "0.2.0"
+version = "0.3.0"
 description = "Break one ore and its vein comes out, break one log of a tree and the tree comes down, right-click a ripe crop to harvest and replant it; bigger comforts earned in the Skills tree Gathering."
 authors = ["ameliiom"]
 license = "MIT"

@@ -64,7 +64,12 @@ pub fn comforts(host: &dyn mod_api::Host, p: PlayerRef) -> Comforts {
 
 /// The held item's id, and how many more uses it has before it breaks (None: it doesn't wear).
 fn held(host: &mut dyn ServerHost, p: PlayerRef) -> Option<(String, Option<i64>)> {
-    let kind = ItemPlace::PlayerHand { player: p.uuid(), hand: Hand::Main }.resource(host)?;
+    held_in(host, p, Hand::Main)
+}
+
+/// As `held`, for either hand.
+pub fn held_in(host: &mut dyn ServerHost, p: PlayerRef, hand: Hand) -> Option<(String, Option<i64>)> {
+    let kind = ItemPlace::PlayerHand { player: p.uuid(), hand }.resource(host)?;
     let int = |id: &str| match ComponentId::new(id).and_then(|c| kind.value(&*host, &c)) {
         Some(Tag::Int(n)) => Some(i64::from(n)),
         _ => None,
@@ -80,12 +85,16 @@ pub fn broke(host: &mut dyn ServerHost, pos: Pos, state: BlockState) {
         return;
     }
     let Some(p) = host.players().acting_player() else { return };
-    if p.entity().is_crouching(&*host) == Some(true) {
+    let crouching = p.entity().is_crouching(&*host) == Some(true);
+    let c = comforts(&*host, p);
+    // Auto-smelt: chosen now for this break and the vein it starts; sneaking mines as usual.
+    let smelt = c.smelt && !crouching && crate::enabled(&*host, crate::setting::SMELT);
+    crate::smelt::choose(host, p.uuid(), smelt);
+    if crouching {
         return;
     }
     let (Some(level), Some(dimension)) = (p.level(&*host), p.dimension(&*host)) else { return };
     let Some((tool, _)) = held(host, p) else { return };
-    let c = comforts(&*host, p);
     let correct = p.has_correct_tool_for_drops(&*host, state) == Some(true);
     let Some(Plan { kind, blocks }) = plan::plan(&*host, level, pos, state, &tool, correct, &c) else { return };
     let leaves = match kind {
@@ -111,6 +120,9 @@ pub fn tick(host: &mut dyn ServerHost) {
     if due {
         tell(host);
     }
+    crate::ranch::tick(host);
+    crate::fishing::tick(host);
+    crate::saplings::tick(host);
     if jobs(|j| j.is_empty()) {
         return;
     }
@@ -187,6 +199,7 @@ fn fall(host: &mut dyn ServerHost, p: PlayerRef, level: LevelRef, leaves: &mut L
 pub fn forget(player: u128) {
     jobs(|j| j.retain(|x| x.player != player));
     told(|t| t.remove(&player));
+    crate::smelt::forget(player);
 }
 
 /// Ticks between looks at each player's comforts (Skills changes their tags at any time).
@@ -243,5 +256,8 @@ mod tests {
             assert!(en.contains(&format!("skills.perk.{tag}")), "no perk line for {tag}");
         }
         assert!(en.contains(&format!("gathering.config.{}", crate::setting::ALL_COMFORTS)));
+        for key in crate::setting::COMFORTS {
+            assert!(en.contains(&format!("gathering.config.{key}")), "no line for the setting {key}");
+        }
     }
 }
