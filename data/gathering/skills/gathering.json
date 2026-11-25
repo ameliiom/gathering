@@ -1,0 +1,108 @@
+{
+  "title": "gathering.tree.gathering",
+  "icon": "minecraft:iron_axe",
+  "background": "minecraft:block/rooted_dirt",
+  "order": 7,
+  "curve": {
+    "base": 20,
+    "step": 10
+  },
+  "sources": [
+    {
+      "stat": "minecraft:mined",
+      "of": "#gathering:veins",
+      "xp": 1
+    },
+    {
+      "stat": "minecraft:mined",
+      "of": "#minecraft:logs",
+      "xp": 0.5
+    }
+  ],
+  "nodes": [
+    {
+      "id": "vein_1",
+      "title": "gathering.node.vein_1",
+      "icon": "minecraft:raw_iron",
+      "at": [
+        0,
+        0
+      ],
+      "cost": 1,
+      "perks": [
+        {
+          "tag": "gathering.vein.8"
+        }
+      ]
+    },
+    {
+      "id": "vein_2",
+      "title": "gathering.node.vein_2",
+      "icon": "minecraft:raw_gold",
+      "at": [
+        1,
+        0
+      ],
+      "cost": 2,
+      "needs": [
+        "vein_1"
+      ],
+      "perks": [
+        {
+          "tag": "gathering.vein.24"
+        }
+      ]
+    },
+    {
+      "id": "vein_3",
+      "title": "gathering.node.vein_3",
+      "icon": "minecraft:diamond",
+      "at": [
+        2,
+        0
+      ],
+      "cost": 4,
+      "needs": [
+        "vein_2"
+      ],
+      "perks": [
+        {
+          "tag": "gathering.vein.64"
+        }
+      ]
+    },
+    {
+      "id": "timber_1",
+      "title": "gathering.node.timber_1",
+      "icon": "minecraft:oak_log",
+      "at": [
+        0,
+        1
+      ],
+      "cost": 1,
+      "perks": [
+        {
+          "tag": "gathering.timber.32"
+        }
+      ]
+    },
+    {
+      "id": "timber_2",
+      "title": "gathering.node.timber_2",
+      "icon": "minecraft:dark_oak_log",
+      "at": [
+        1,
+        1
+      ],
+      "cost": 3,
+      "needs": [
+        "timber_1"
+      ],
+      "perks": [
+        {
+          "tag": "gathering.timber.256"
+        }
+      ]
+    }
+  ]
+}

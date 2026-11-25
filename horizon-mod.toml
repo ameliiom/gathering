@@ -1,0 +1,14 @@
+id = "gathering"
+name = "Gathering"
+version = "0.1.0"
+description = "Break one ore and its vein comes out, break one log of a tree and the tree comes down: comforts earned in the Skills tree Gathering."
+authors = ["ameliiom"]
+license = "MIT"
+api = "0.2"
+side = "both"
+capabilities = ["registries"]
+
+[native]
+game = "26.3"
+horizon = "f037744a79f9982c47876f49c5a3067279f88706"
+mixins = "e59da9094f0c2fdda6c627fe9eff22dec6a906f0"

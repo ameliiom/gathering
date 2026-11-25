@@ -1,0 +1,14 @@
+{
+  "gathering.config.all_comforts": "All comforts without Skills",
+  "gathering.tree.gathering": "Gathering",
+  "gathering.node.vein_1": "Vein Miner I",
+  "gathering.node.vein_2": "Vein Miner II",
+  "gathering.node.vein_3": "Vein Miner III",
+  "gathering.node.timber_1": "Timber I",
+  "gathering.node.timber_2": "Timber II",
+  "skills.perk.gathering.vein.8": "Breaking an ore takes up to 8 more of its vein",
+  "skills.perk.gathering.vein.24": "Breaking an ore takes up to 24 more of its vein",
+  "skills.perk.gathering.vein.64": "Breaking an ore takes up to 64 more of its vein",
+  "skills.perk.gathering.timber.32": "Breaking a tree's log with an axe takes up to 32 more logs",
+  "skills.perk.gathering.timber.256": "Breaking a tree's log with an axe takes the whole tree (256 logs)"
+}

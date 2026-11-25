@@ -1,0 +1,14 @@
+{
+  "values": [
+    "#gathering:vein/coal",
+    "#gathering:vein/iron",
+    "#gathering:vein/copper",
+    "#gathering:vein/gold",
+    "#gathering:vein/redstone",
+    "#gathering:vein/lapis",
+    "#gathering:vein/diamond",
+    "#gathering:vein/emerald",
+    "#gathering:vein/quartz",
+    "#gathering:vein/debris"
+  ]
+}

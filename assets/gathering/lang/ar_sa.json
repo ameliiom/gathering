@@ -1,0 +1,14 @@
+{
+  "gathering.config.all_comforts": "كل الراحات بدون المهارات",
+  "gathering.tree.gathering": "الجمع",
+  "gathering.node.vein_1": "معدّن العروق 1",
+  "gathering.node.vein_2": "معدّن العروق 2",
+  "gathering.node.vein_3": "معدّن العروق 3",
+  "gathering.node.timber_1": "الحطّاب 1",
+  "gathering.node.timber_2": "الحطّاب 2",
+  "skills.perk.gathering.vein.8": "تكسر خام ويطيح معه لين 8 من عرقه",
+  "skills.perk.gathering.vein.24": "تكسر خام ويطيح معه لين 24 من عرقه",
+  "skills.perk.gathering.vein.64": "تكسر خام ويطيح معه لين 64 من عرقه",
+  "skills.perk.gathering.timber.32": "تكسر جذع شجرة بالفأس ويطيح معه لين 32 جذع",
+  "skills.perk.gathering.timber.256": "تكسر جذع شجرة بالفأس وتطيح الشجرة كلها (256 جذع)"
+}
