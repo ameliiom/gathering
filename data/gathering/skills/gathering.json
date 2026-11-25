@@ -17,6 +17,11 @@
       "stat": "minecraft:mined",
       "of": "#minecraft:logs",
       "xp": 0.5
+    },
+    {
+      "stat": "minecraft:custom",
+      "of": "gathering:harvested",
+      "xp": 0.5
     }
   ],
   "nodes": [
@@ -101,6 +106,75 @@
       "perks": [
         {
           "tag": "gathering.timber.256"
+        }
+      ]
+    },
+    {
+      "id": "leaves",
+      "title": "gathering.node.leaves",
+      "icon": "minecraft:oak_leaves",
+      "at": [
+        2,
+        1
+      ],
+      "cost": 2,
+      "needs": [
+        "timber_2"
+      ],
+      "perks": [
+        {
+          "tag": "gathering.leaves"
+        }
+      ]
+    },
+    {
+      "id": "harvest_1",
+      "title": "gathering.node.harvest_1",
+      "icon": "minecraft:wheat",
+      "at": [
+        0,
+        2
+      ],
+      "cost": 1,
+      "perks": [
+        {
+          "tag": "gathering.harvest.3"
+        }
+      ]
+    },
+    {
+      "id": "harvest_2",
+      "title": "gathering.node.harvest_2",
+      "icon": "minecraft:hay_block",
+      "at": [
+        1,
+        2
+      ],
+      "cost": 3,
+      "needs": [
+        "harvest_1"
+      ],
+      "perks": [
+        {
+          "tag": "gathering.harvest.5"
+        }
+      ]
+    },
+    {
+      "id": "bag",
+      "title": "gathering.node.bag",
+      "icon": "minecraft:bundle",
+      "at": [
+        2,
+        2
+      ],
+      "cost": 4,
+      "needs": [
+        "harvest_2"
+      ],
+      "perks": [
+        {
+          "tag": "gathering.bag"
         }
       ]
     }

@@ -40,6 +40,9 @@ Fortune and Silk Touch, the tool's wear, statistics and hunger.
 |---|---|
 | Right-click harvest of one crop | **Vein Miner** I/II/III (8, 24, 64 ores) · **Timber** I/II (32, 256 logs) · **Leaf Blower** (the felled tree's leaves fall at once) · **Wide Harvest** I/II (3×3, 5×5 crops) · **Into The Bag** (a vein's, tree's or harvest's drops go straight into the inventory) |
 
+The tree: row one Vein Miner I → II → III; row two Timber I → II → Leaf Blower; row three Wide
+Harvest I → II → Into The Bag.
+
 - Experience: ores and logs mined (the game's `mined` statistic), crops harvested (Gathering's
   own statistic).
 - As with Storage, no code tie: each node gives a vanilla tag (`gathering.vein.24`…), the tree
@@ -77,7 +80,27 @@ family has its tag file, every shown key in both languages).
 
 Blocks break 32 a tick from the next tick on, so a 64-ore vein takes two ticks.
 
-## 7. Risks (pre-mortem) and answers
+## 7. The full build (0.2.0), measured in the game (2026-11-25)
+
+| What | Result |
+|---|---|
+| Right-click on ripe wheat, no comfort (7×7 field) | 1 harvested and replanted (age 0) |
+| Wide Harvest I (3×3) | 9 replanted; Wide Harvest II (5×5) at a field's edge: the 20 inside the field |
+| Into The Bag, 3×3 harvest | 9 wheat and 16 seeds in the inventory, nothing on the ground |
+| Into The Bag, 64-ore vein | 64 raw iron in the inventory, nothing on the ground, every ore gone |
+| Leaf Blower, felled oak | logs and leaves gone 30 ticks later; 7 drops (saplings, sticks, apples) as decay gives |
+| Outline | aiming at a 10-ore vein with a pickaxe outlines all 10 (stone and deepslate) in the game's thin dark outline; buried faces don't draw |
+
+- Harvest is Right-Click Crops 2.0.1 (16 plant families, its settings per plant, loot-paid
+  replanting), ported to native with its own tests kept; the wide harvest asks its same rules at
+  every crop around the one clicked, and a crop harvested counts toward the tree
+  (`gathering:harvested`).
+- Leaf Blower waits 8 ticks after the last log (a leaf's distance spreads a block a tick), then
+  drops only natural leaves whose distance is 7: a neighbour tree's leaves stay.
+- The client learns its vein and tree sizes from the server (`gathering:caps`, when they change,
+  checked each second) and plans with the same code the server breaks by (`plan.rs`).
+
+## 8. Risks (pre-mortem) and answers
 
 | Risk | Answer |
 |---|---|
@@ -87,7 +110,7 @@ Blocks break 32 a tick from the next tick on, so a 64-ore vein takes two ticks.
 | Too strong too early | small at first (8 ores, 32 logs), earned in the tree; hunger and wear stay the game's |
 | A friend's mods or claims | `destroy_block` keeps spawn protection, adventure mode and other mods' cancels |
 
-## 8. Phases
+## 9. Phases (all built in 0.2.0)
 
 1. Veins and trees, the Gathering tree, tags, settings (the core).
 2. Right-click harvest (the forked Right-Click Crops, native) and Wide Harvest.

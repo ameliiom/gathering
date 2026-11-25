@@ -2,33 +2,30 @@
 //! up to `PER_TICK` more blocks through `PlayerRef::destroy_block`, so every block breaks as the
 //! player's own (loot for the held tool and its enchantments, wear, the mined statistic, hunger,
 //! spawn protection, other mods' cancels).
-use crate::perks;
+use crate::bag;
+use crate::payloads::{self, Caps};
+use crate::perks::Comforts;
+use crate::plan::{self, Kind, Plan, kind_at, natural_leaf};
 use crate::shape::{self, Pos};
-use mod_api::{
-    BlockMetadata, BlockState, ComponentId, Hand, Host, HostBlockStates, ItemPlace, LevelRef, PlayerRef, ServerHost, Tag,
-};
+use mod_api::{BlockState, ComponentId, Hand, Host, HostBlockStates, ItemPlace, LevelRef, PlayerRef, ServerHost, Tag, VarInt};
 #[allow(unused_imports)]
 use mod_api::prelude::*;
 use std::cell::Cell;
+use std::collections::BTreeMap;
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicU32, Ordering};
 
-/// The ore families: an ore joins the vein of the family whose block tag `gathering:vein/<family>`
-/// holds it (the game's own `minecraft:<family>_ores` inside, so deepslate and stone variants are
-/// one vein; packs add their ores to these tags).
-pub const FAMILIES: [&str; 10] = ["coal", "iron", "copper", "gold", "redstone", "lapis", "diamond", "emerald", "quartz", "debris"];
 /// Blocks broken per player per tick: a 64-ore vein measured 32 ms in one go, so two ticks.
 const PER_TICK: usize = 32;
+/// Leaves: how long to wait after the last log (a leaf's distance spreads a block a tick, up to
+/// 7), how many at most, and how many a tick.
+const LEAF_WAIT: u32 = 8;
+const LEAF_MAX: usize = 1024;
+const LEAF_PER_TICK: usize = 64;
 
 thread_local! {
     /// Set while a job breaks, so those breaks don't start jobs of their own.
     static BUSY: Cell<bool> = const { Cell::new(false) };
-}
-
-/// What a job breaks: one ore family, or one kind of log.
-#[derive(Clone, Debug, PartialEq)]
-enum Kind {
-    Vein(&'static str),
-    Log(String),
 }
 
 struct Job {
@@ -38,6 +35,19 @@ struct Job {
     /// The held item's id when the job began: switching tools ends it.
     tool: String,
     left: Vec<Pos>,
+    /// Into The Bag: drops go to the inventory.
+    bag: bool,
+    /// Leaf Blower, for a tree: its leaves fall once the logs are down.
+    leaves: Option<Leaves>,
+}
+
+struct Leaves {
+    /// Every log the job felled (the first one included).
+    felled: Vec<Pos>,
+    /// Ticks still to wait for the leaves' distances to settle.
+    wait: u32,
+    /// The leaves to drop, found once the wait is over.
+    queue: Option<Vec<Pos>>,
 }
 
 static JOBS: Mutex<Vec<Job>> = Mutex::new(Vec::new());
@@ -46,46 +56,10 @@ fn jobs<R>(f: impl FnOnce(&mut Vec<Job>) -> R) -> R {
     f(&mut JOBS.lock().unwrap_or_else(|e| e.into_inner()))
 }
 
-fn name(host: &dyn Host, state: BlockState) -> Option<String> {
-    host.block_states().name(state.block()).ok().map(|s| s.to_string())
-}
-
-fn block_in(host: &dyn Host, block: &str, tag: &str) -> bool {
-    host.registry_entry("minecraft:block", block).and_then(|e| host.registry_entry_in_tag(&e, tag)).unwrap_or(false)
-}
-
-fn item_in(host: &dyn Host, item: &str, tag: &str) -> bool {
-    host.registry_entry("minecraft:item", item).and_then(|e| host.registry_entry_in_tag(&e, tag)).unwrap_or(false)
-}
-
-fn family(host: &dyn Host, block: &str) -> Option<&'static str> {
-    FAMILIES.into_iter().find(|f| block_in(host, block, &format!("gathering:vein/{f}")))
-}
-
-fn kind_at(host: &dyn Host, level: LevelRef, pos: Pos) -> Option<Kind> {
-    let block = name(host, level.block_state(host, pos)?)?;
-    if let Some(f) = family(host, &block) {
-        return Some(Kind::Vein(f));
-    }
-    block_in(host, &block, "minecraft:logs").then_some(Kind::Log(block))
-}
-
-/// Natural leaves (grown, not placed) touching any of `logs`: what tells a tree from a house.
-fn natural_leaves(host: &dyn Host, level: LevelRef, logs: &[Pos]) -> bool {
-    let meta = host.block_states();
-    logs.iter().flat_map(|p| shape::around(*p)).any(|q| {
-        let Some(state) = level.block_state(host, q) else { return false };
-        name(host, state).is_some_and(|n| block_in(host, &n, "minecraft:leaves"))
-            && state.property(&meta, "persistent").ok().flatten() == Some("false")
-    })
-}
-
-fn tags(host: &dyn ServerHost, p: PlayerRef) -> Vec<String> {
-    p.entity().tags(host).unwrap_or_default()
-}
-
-fn all_comforts(host: &dyn ServerHost) -> bool {
-    host.setting(crate::MOD_ID, crate::setting::ALL_COMFORTS).is_some_and(|v| v.trim() == "true")
+/// A player's comforts (their tags, or everything with `all_comforts`).
+pub fn comforts(host: &dyn mod_api::Host, p: PlayerRef) -> Comforts {
+    let all = host.setting(crate::MOD_ID, crate::setting::ALL_COMFORTS).is_some_and(|v| v.trim() == "true");
+    Comforts::of(&p.entity().tags(host).unwrap_or_default(), all)
 }
 
 /// The held item's id, and how many more uses it has before it breaks (None: it doesn't wear).
@@ -110,50 +84,33 @@ pub fn broke(host: &mut dyn ServerHost, pos: Pos, state: BlockState) {
         return;
     }
     let (Some(level), Some(dimension)) = (p.level(&*host), p.dimension(&*host)) else { return };
-    let Some(block) = name(&*host, state) else { return };
     let Some((tool, _)) = held(host, p) else { return };
-    let tags = tags(&*host, p);
-    let all = all_comforts(&*host);
-    let (kind, cap) = if let Some(f) = family(&*host, &block) {
-        // The right tool for drops, or the vein would break into nothing.
-        if p.has_correct_tool_for_drops(&*host, state) != Some(true) {
-            return;
+    let c = comforts(&*host, p);
+    let correct = p.has_correct_tool_for_drops(&*host, state) == Some(true);
+    let Some(Plan { kind, blocks }) = plan::plan(&*host, level, pos, state, &tool, correct, &c) else { return };
+    let leaves = match kind {
+        Kind::Log(_) if c.leaves => {
+            let mut felled = blocks.clone();
+            felled.push(pos);
+            Some(Leaves { felled, wait: LEAF_WAIT, queue: None })
         }
-        (Kind::Vein(f), if all { perks::VEIN_MAX } else { perks::best(&tags, perks::VEIN, perks::VEIN_MAX) })
-    } else if block_in(&*host, &block, "minecraft:logs") && item_in(&*host, &tool, "minecraft:axes") {
-        (Kind::Log(block), if all { perks::TIMBER_MAX } else { perks::best(&tags, perks::TIMBER, perks::TIMBER_MAX) })
-    } else {
-        return;
+        _ => None,
     };
-    if cap == 0 {
-        return;
-    }
-    let host_ref: &dyn Host = &*host;
-    let found = shape::joined(pos, cap, |q| kind_at(host_ref, level, q).as_ref() == Some(&kind));
-    if found.is_empty() {
-        return;
-    }
-    let left = match &kind {
-        Kind::Log(_) => {
-            let mut all_logs = found.clone();
-            all_logs.push(pos);
-            if !natural_leaves(host_ref, level, &all_logs) {
-                return;
-            }
-            shape::top_down(found)
-        }
-        Kind::Vein(_) => found,
-    };
+    let left = blocks;
     let player = p.uuid();
     jobs(|j| {
         j.retain(|x| x.player != player);
-        j.push(Job { player, dimension: dimension.to_string(), kind, tool, left });
+        j.push(Job { player, dimension: dimension.to_string(), kind, tool, left, bag: c.bag, leaves });
     });
 }
 
 /// Each tick: every job breaks up to `PER_TICK` more, as long as its player is here, in the same
 /// dimension, holding the same tool with uses to spare, and the block is still what it was.
 pub fn tick(host: &mut dyn ServerHost) {
+    let due = TICKS.fetch_add(1, Ordering::Relaxed).is_multiple_of(TELL_EVERY);
+    if due {
+        tell(host);
+    }
     if jobs(|j| j.is_empty()) {
         return;
     }
@@ -174,8 +131,14 @@ fn step(host: &mut dyn ServerHost, job: &mut Job) -> bool {
     if dimension.to_string() != job.dimension {
         return false;
     }
+    if job.left.is_empty() {
+        return match &mut job.leaves {
+            Some(leaves) => fall(host, p, level, leaves, job.bag),
+            None => false,
+        };
+    }
     for _ in 0..PER_TICK {
-        let Some(pos) = job.left.first().copied() else { return false };
+        let Some(pos) = job.left.first().copied() else { break };
         match held(host, p) {
             Some((tool, left)) if tool == job.tool && left.is_none_or(|n| n > 1) => {}
             // Another tool, an empty hand, or one use left: the tool is kept, the job ends.
@@ -186,32 +149,76 @@ fn step(host: &mut dyn ServerHost, job: &mut Job) -> bool {
             continue;
         }
         BUSY.set(true);
-        p.destroy_block(host, pos, false);
+        p.destroy_block(host, pos, job.bag);
         BUSY.set(false);
     }
-    !job.left.is_empty()
+    !job.left.is_empty() || job.leaves.is_some()
+}
+
+/// Leaf Blower: once the logs are down and the leaves have learnt it (the game spreads a leaf's
+/// distance from the nearest log a block per tick), the felled tree's natural leaves that no
+/// log holds any more fall with their drops (saplings, sticks, apples), as decay would drop them.
+fn fall(host: &mut dyn ServerHost, p: PlayerRef, level: LevelRef, leaves: &mut Leaves, bag: bool) -> bool {
+    if leaves.wait > 0 {
+        leaves.wait -= 1;
+        return true;
+    }
+    let queue = leaves.queue.get_or_insert_with(|| {
+        let read: &dyn Host = &*host;
+        let meta = read.block_states();
+        let loose = |q: Pos| level.block_state(read, q).is_some_and(|s| natural_leaf(read, s));
+        let mut found = shape::joined_all(&leaves.felled, LEAF_MAX, loose);
+        // Only the ones too far from any standing log: a neighbour tree's leaves stay.
+        found.retain(|q| level.block_state(read, *q).and_then(|s| s.property(&meta, "distance").ok().flatten().map(str::to_owned)).as_deref() == Some("7"));
+        found
+    });
+    for _ in 0..LEAF_PER_TICK {
+        let Some(pos) = queue.pop() else { return false };
+        match level.destroy_block(host, pos, true, None, bag) {
+            Ok(Some(stacks)) if bag => bag::give(host, p, level, pos, stacks),
+            Ok(_) => {}
+            Err(e) => eprintln!("[gathering] a leaf at {pos:?}: {e:?}"),
+        }
+    }
+    !queue.is_empty()
 }
 
 /// A player left: their job ends.
 pub fn forget(player: u128) {
     jobs(|j| j.retain(|x| x.player != player));
+    told(|t| t.remove(&player));
+}
+
+/// Ticks between looks at each player's comforts (Skills changes their tags at any time).
+const TELL_EVERY: u32 = 20;
+static TICKS: AtomicU32 = AtomicU32::new(0);
+/// What each player's client was last told.
+static TOLD: Mutex<BTreeMap<u128, (usize, usize)>> = Mutex::new(BTreeMap::new());
+
+fn told<R>(f: impl FnOnce(&mut BTreeMap<u128, (usize, usize)>) -> R) -> R {
+    f(&mut TOLD.lock().unwrap_or_else(|e| e.into_inner()))
+}
+
+/// Tells each client its vein and tree sizes when they changed, for the outline.
+fn tell(host: &mut dyn ServerHost) {
+    let Some(token) = payloads::CAPS.get() else { return };
+    for p in host.players().server_players() {
+        let c = comforts(&*host, p);
+        let now = (c.vein, c.timber);
+        if told(|t| t.get(&p.uuid()) == Some(&now)) {
+            continue;
+        }
+        let caps = Caps { vein: VarInt(now.0 as i32), timber: VarInt(now.1 as i32) };
+        // A client not ready yet (just joining) is asked again next time.
+        if token.send(host, p, &caps).is_ok() {
+            told(|t| t.insert(p.uuid(), now));
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::FAMILIES;
     use std::path::Path;
-
-    /// Every ore family the code knows has its tag file, and no tag file is left without one.
-    #[test]
-    fn each_family_has_exactly_its_tag_file() {
-        let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("data/gathering/tags/block/vein");
-        let mut files: Vec<String> = std::fs::read_dir(dir).unwrap().map(|e| e.unwrap().file_name().to_string_lossy().trim_end_matches(".json").to_owned()).collect();
-        files.sort();
-        let mut known: Vec<String> = FAMILIES.iter().map(|f| f.to_string()).collect();
-        known.sort();
-        assert_eq!(files, known);
-    }
 
     /// Both languages hold the same keys, and every node and perk the tree shows has its line.
     #[test]

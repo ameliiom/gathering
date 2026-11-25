@@ -14,9 +14,14 @@ pub fn around(p: Pos) -> impl Iterator<Item = Pos> {
 
 /// Every position joined to `start` through positions `same` accepts, nearest first (in steps),
 /// `start` itself left out, at most `cap`.
-pub fn joined(start: Pos, cap: usize, mut same: impl FnMut(Pos) -> bool) -> Vec<Pos> {
-    let mut seen = HashSet::from([start]);
-    let mut queue = VecDeque::from([start]);
+pub fn joined(start: Pos, cap: usize, same: impl FnMut(Pos) -> bool) -> Vec<Pos> {
+    joined_all(&[start], cap, same)
+}
+
+/// As `joined`, walking out from all of `starts` at once (a felled tree's logs, to its leaves).
+pub fn joined_all(starts: &[Pos], cap: usize, mut same: impl FnMut(Pos) -> bool) -> Vec<Pos> {
+    let mut seen: HashSet<Pos> = starts.iter().copied().collect();
+    let mut queue: VecDeque<Pos> = starts.iter().copied().collect();
     let mut found = Vec::new();
     while let Some(p) = queue.pop_front() {
         for q in around(p) {
@@ -75,6 +80,15 @@ mod tests {
         });
         assert_eq!(found.len(), 63);
         assert_eq!(asked.len(), set(&asked).len());
+    }
+
+    #[test]
+    fn many_starts_share_one_walk() {
+        // Two felled logs with leaves around and between them: each leaf found once, logs never.
+        let leaves = set(&[[0, 2, 0], [1, 2, 0], [2, 2, 0], [5, 5, 5]]);
+        let found = joined_all(&[[0, 1, 0], [2, 1, 0]], 100, |p| leaves.contains(&p));
+        assert_eq!(set(&found), set(&[[0, 2, 0], [1, 2, 0], [2, 2, 0]]));
+        assert_eq!(found.len(), 3);
     }
 
     #[test]
