@@ -115,7 +115,7 @@ fn land(host: &mut dyn ServerHost, uuid: u128, hand: Hand) {
     let read: &dyn Host = host;
     let fish = catch.iter().any(|s| crate::plan::item_in(read, &s.item().id(read), "minecraft:fishes"));
     hook.discard(host);
-    crate::bag::give(host, p, level, pos, catch);
+    crate::kit::inventory::give(host, crate::MOD_ID, p, level, pos, catch);
     if fish && !p.award_stat(host, StatType::Custom, "minecraft:fish_caught", 1) {
         eprintln!("[gathering] could not award fish_caught");
     }

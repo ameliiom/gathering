@@ -91,7 +91,7 @@ impl Plant {
 
     /// The translation key of the plant's setting label (`assets/gathering/lang/`).
     pub fn label_key(self) -> String {
-        format!("{MOD_ID}.setting.{}", self.key())
+        format!("{MOD_ID}.config.{}", self.key())
     }
 
     pub fn from_block(block: &str) -> Option<Self> {

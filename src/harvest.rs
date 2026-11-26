@@ -9,17 +9,15 @@ use crate::crops::{self as core, Crop, Payment, Plant, SeedStack};
 use mod_api::{
     BlockClick, BlockState, BlockUpdateFlags, ClientHost, EntityRef, EquipmentSlot, GameMode,
     GameRuleValue, Hand, Host, HostBlockStates, ItemStack, LevelRef, PlayerRef, ServerHost,
-    SettingSpec, SettingValue,
 };
 
-/// The on/off setting for one plant family, enabled by default.
-pub fn setting(plant: Plant) -> SettingSpec {
-    SettingSpec::toggle(plant.key(), plant.label_key(), true)
+/// The on/off setting for one plant family, enabled by default (label `gathering.config.<plant>`).
+pub fn setting(plant: Plant) -> crate::kit::setting::Toggle {
+    crate::kit::setting::Toggle::on(plant.key())
 }
 
 fn plant_enabled(host: &dyn Host, plant: Plant) -> bool {
-    let stored = host.setting(core::MOD_ID, plant.key());
-    !matches!(setting(plant).read(stored.as_deref()), SettingValue::Toggle(false))
+    setting(plant).read(host, core::MOD_ID)
 }
 
 struct CropTarget {
@@ -236,7 +234,7 @@ fn loot(
 /// The drops: into the bag of the player who has that comfort, else where the plant stood.
 fn drop_all(host: &mut dyn ServerHost, level: LevelRef, pos: [i32; 3], stacks: Vec<ItemStack>, bag: Option<PlayerRef>) {
     if let Some(p) = bag {
-        crate::bag::give(host, p, level, pos, stacks);
+        crate::kit::inventory::give(host, crate::MOD_ID, p, level, pos, stacks);
         return;
     }
     for stack in stacks.into_iter().filter(|stack| stack.count() > 0) {

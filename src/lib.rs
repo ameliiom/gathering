@@ -8,10 +8,17 @@
 //!   player's own break; a felled tree's leaves after it.
 //! - **Harvest** (`crops.rs`, `harvest.rs`): Right-Click Crops by AyanoKaito, ported, with the
 //!   wide harvest around the crop clicked.
-//! - **The bag** (`bag.rs`): drops into the inventory.
+//! - **The bag**: drops into the inventory (`kit::inventory::give`).
 //! - **Batch 2**: auto-smelt (`smelt.rs`), wide feeding and shearing (`ranch.rs`), wide planting
 //!   (`planting.rs`), auto-fishing (`fishing.rs`) and saplings that plant themselves (`saplings.rs`).
-mod bag;
+// Kit (ameliiom/kit), the shared code: the installed Kit mod, or its source in place for
+// local builds (`kit_local`, horizon-mods/.cargo/config.toml).
+#[cfg(kit_local)]
+#[allow(dead_code)]
+#[path = "../../kit/src/lib.rs"]
+mod kit;
+#[cfg(not(kit_local))]
+use ::kit;
 mod client;
 pub mod crops;
 mod fishing;
@@ -28,7 +35,7 @@ mod smelt;
 
 use mod_api::{
     BlockDropsEvent, EntityInteractEvent, ItemSpawnEvent, LevelHost, PlayerFishEvent, PlayerShearEntityEvent, BreakBlockEvent, ClientHost, Flow, Hooks, HostSide, IPayloadContext, InteractionResult, PayloadId, PlayerLoggedOutEvent, Registrar,
-    RegistrationContext, RenderLevelStageEvent, RightClickBlockEvent, ServerHost, ServerTickEvent, ServerTickPhase, SettingSpec,
+    RegistrationContext, RenderLevelStageEvent, RightClickBlockEvent, ServerHost, ServerTickEvent, ServerTickPhase,
 };
 #[allow(unused_imports)]
 use mod_api::prelude::*;
@@ -37,33 +44,22 @@ pub(crate) const MOD_ID: &str = "gathering";
 /// `gathering:harvested`: every crop a right-click harvests (the tree's experience).
 pub(crate) const HARVESTED: &str = "harvested";
 
-/// Settings (Options > Mods > Gathering): every comfort without Skills, and one on/off per plant.
+/// Settings (Options > Mods > Gathering): every comfort without Skills (`kit::comforts::ALL`),
+/// one on/off per comfort of batch 2 and one per plant (`harvest::setting`).
 pub(crate) mod setting {
-    /// Opens every comfort for a world that doesn't use Skills.
-    pub const ALL_COMFORTS: &str = "all_comforts";
+    use crate::kit::setting::Toggle;
     /// One on/off for each comfort of batch 2, on by default (it still has to be earned).
-    pub const SMELT: &str = "smelt";
-    pub const RANCH: &str = "ranch";
-    pub const PLANTING: &str = "planting";
-    pub const FISHING: &str = "fishing";
-    pub const SAPLINGS: &str = "saplings";
-    pub const COMFORTS: [&str; 5] = [SMELT, RANCH, PLANTING, FISHING, SAPLINGS];
-}
-
-fn comfort_setting(key: &'static str) -> SettingSpec {
-    SettingSpec::toggle(key, match key {
-        setting::SMELT => "gathering.config.smelt",
-        setting::RANCH => "gathering.config.ranch",
-        setting::PLANTING => "gathering.config.planting",
-        setting::SAPLINGS => "gathering.config.saplings",
-        _ => "gathering.config.fishing",
-    }, true)
+    pub const SMELT: Toggle = Toggle::on("smelt");
+    pub const RANCH: Toggle = Toggle::on("ranch");
+    pub const PLANTING: Toggle = Toggle::on("planting");
+    pub const FISHING: Toggle = Toggle::on("fishing");
+    pub const SAPLINGS: Toggle = Toggle::on("saplings");
+    pub const COMFORTS: [Toggle; 5] = [SMELT, RANCH, PLANTING, FISHING, SAPLINGS];
 }
 
 /// Whether a comfort's setting is on (it is unless turned off).
-pub(crate) fn enabled(host: &dyn mod_api::Host, key: &'static str) -> bool {
-    let stored = host.setting(MOD_ID, key);
-    !matches!(comfort_setting(key).read(stored.as_deref()), mod_api::SettingValue::Toggle(false))
+pub(crate) fn enabled(host: &dyn mod_api::Host, key: kit::setting::Toggle) -> bool {
+    key.read(host, MOD_ID)
 }
 
 fn on_caps(caps: payloads::Caps, _: &mut dyn IPayloadContext) -> Result<(), String> {
@@ -77,9 +73,10 @@ pub struct Mod;
 #[mod_api::horizon_mod]
 impl Hooks for Mod {
     fn register(&self, r: &mut dyn Registrar, _cx: &RegistrationContext) {
-        let specs = std::iter::once(SettingSpec::toggle(setting::ALL_COMFORTS, "gathering.config.all_comforts", false))
-            .chain(setting::COMFORTS.into_iter().map(comfort_setting))
-            .chain(crops::Plant::ALL.into_iter().map(harvest::setting));
+        let specs = std::iter::once(kit::comforts::ALL)
+            .chain(setting::COMFORTS)
+            .chain(crops::Plant::ALL.into_iter().map(harvest::setting))
+            .map(|t| t.spec(MOD_ID));
         if let Err(e) = r.register_custom_stat(HARVESTED) {
             eprintln!("[gathering] declaring statistic {HARVESTED}: {e}");
         }

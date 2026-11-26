@@ -35,10 +35,7 @@ pub const FIELD_MAX: usize = 256;
 /// How far a planting reaches with `gathering.plant.field`: as far as the field goes.
 pub const FIELD_REACH: i32 = i32::MAX;
 
-/// The largest `<prefix><n>` among `tags` (0 without any), at most `max`.
-pub fn best(tags: &[String], prefix: &str, max: usize) -> usize {
-    tags.iter().filter_map(|t| t.strip_prefix(prefix)?.parse::<usize>().ok()).max().unwrap_or(0).min(max)
-}
+pub use crate::kit::comforts::best;
 
 /// One player's comforts.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -75,7 +72,7 @@ impl Comforts {
                 saplings: true,
             };
         }
-        let has = |tag: &str| tags.iter().any(|t| t == tag);
+        let has = |tag: &str| crate::kit::comforts::has(tags, tag);
         let side = best(tags, HARVEST, HARVEST_MAX).max(1) as i32;
         let plant = if has(PLANT_FIELD) { FIELD_REACH } else { (best(tags, PLANT, PLANT_MAX) as i32 - 1).max(0) / 2 };
         Comforts {
@@ -137,13 +134,9 @@ mod tests {
     #[test]
     fn the_shipped_tree_gives_exactly_the_tags_gathering_reads() {
         let text = crate::tree_files();
-        let given: Vec<String> = text
-            .split("\"tag\"")
-            .skip(1)
-            .filter_map(|rest| rest.split('"').nth(1).map(str::to_owned))
-            .collect();
+        let given = crate::kit::comforts::tree_tags(&text);
         for tag in &given {
-            let counted = [VEIN, TIMBER, HARVEST, RANCH, PLANT].iter().any(|p| tag.strip_prefix(p).is_some_and(|n| n.parse::<usize>().is_ok()));
+            let counted = crate::kit::comforts::is_level(tag, &[VEIN, TIMBER, HARVEST, RANCH, PLANT]);
             let flag = [LEAVES, BAG, SMELT, PLANT_FIELD, FISHING, SAPLINGS].contains(&tag.as_str());
             assert!(counted || flag, "the tree gives {tag}, which Gathering never reads");
         }

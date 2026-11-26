@@ -1,12 +1,16 @@
 id = "gathering"
 name = "Gathering"
-version = "0.4.0"
+version = "0.4.1"
 description = "Break one ore and its vein comes out, break one log of a tree and the tree comes down, right-click a ripe crop to harvest and replant it; bigger comforts earned in the Skills trees Mining and Farming."
 authors = ["ameliiom"]
 license = "MIT"
 api = "0.2"
 side = "both"
 capabilities = ["registries"]
+
+[dependencies]
+# The shared code of ameliiom's mods (settings, comforts, inventory, outline, ...).
+kit = "^0.1"
 
 [native]
 game = "26.3"

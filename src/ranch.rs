@@ -118,9 +118,7 @@ pub fn tick(host: &mut dyn ServerHost) {
     }
 }
 
-fn player(host: &dyn ServerHost, uuid: u128) -> Option<PlayerRef> {
-    host.players().server_players().into_iter().find(|p| p.uuid() == uuid)
-}
+use crate::kit::players::by_uuid as player;
 
 /// The same kind's entities within `r` blocks of `at` (the one clicked left out).
 fn around(host: &dyn Host, level: LevelRef, clicked: EntityRef, r: i32) -> Vec<EntityRef> {

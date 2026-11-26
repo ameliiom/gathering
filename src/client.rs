@@ -5,14 +5,10 @@
 use crate::perks::Comforts;
 use crate::plan::{self, Plan};
 use crate::shape::Pos;
-use mod_api::{ClientHost, CrosshairTarget, EquipmentSlot, Host, RenderLevelStage, RenderLevelStageEvent, WorldDepth, WorldLine};
+use mod_api::{ClientHost, CrosshairTarget, EquipmentSlot, Host, RenderLevelStage, RenderLevelStageEvent};
 #[allow(unused_imports)]
 use mod_api::prelude::*;
 use std::sync::Mutex;
-
-/// The game's own block outline: black at 40%, a little wider so the group reads at a glance.
-const COLOUR: u32 = 0x6600_0000;
-const WIDTH: f32 = 2.0;
 
 struct Outline {
     /// The vein and tree sizes this player has (the server tells).
@@ -67,21 +63,6 @@ fn aimed(host: &dyn ClientHost) -> Vec<Pos> {
     blocks
 }
 
-/// The twelve edges of the block at `p`, a hair outside it as the game draws its outline.
-fn edges([x, y, z]: Pos) -> impl Iterator<Item = WorldLine> {
-    let (lo, hi) = (-0.002, 1.002);
-    let c = move |i: f64, j: f64, k: f64| [f64::from(x) + i, f64::from(y) + j, f64::from(z) + k];
-    let corners = [(lo, lo, lo), (hi, lo, lo), (hi, lo, hi), (lo, lo, hi)];
-    (0..4).flat_map(move |n| {
-        let (a, b) = (corners[n], corners[(n + 1) % 4]);
-        [
-            WorldLine::new(c(a.0, a.1, a.2), c(b.0, b.1, b.2), COLOUR, WIDTH, WorldDepth::Tested),
-            WorldLine::new(c(a.0, hi, a.2), c(b.0, hi, b.2), COLOUR, WIDTH, WorldDepth::Tested),
-            WorldLine::new(c(a.0, lo, a.2), c(a.0, hi, a.2), COLOUR, WIDTH, WorldDepth::Tested),
-        ]
-    })
-}
-
 pub fn draw(host: &dyn ClientHost, event: &mut RenderLevelStageEvent<'_>) {
     if !matches!(event.stage, RenderLevelStage::AfterTranslucentBlocks) {
         return;
@@ -90,28 +71,7 @@ pub fn draw(host: &dyn ClientHost, event: &mut RenderLevelStageEvent<'_>) {
     if blocks.is_empty() {
         return;
     }
-    let lines: Vec<WorldLine> = blocks.into_iter().flat_map(edges).collect();
-    if let Err(e) = event.draw.lines(&lines) {
+    if let Err(e) = event.draw.lines(&crate::kit::outline::lines(blocks)) {
         eprintln!("[gathering] drawing the outline: {e:?}");
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn a_block_has_twelve_edges_just_outside_it() {
-        let lines: Vec<WorldLine> = edges([2, 3, 4]).collect();
-        assert_eq!(lines.len(), 12);
-        for l in &lines {
-            for end in [l.from, l.to] {
-                for (v, base) in end.iter().zip([2.0, 3.0, 4.0]) {
-                    assert!(*v > base - 0.01 && *v < base + 1.01);
-                }
-            }
-            let length: f64 = (0..3).map(|i| (l.to[i] - l.from[i]).powi(2)).sum::<f64>().sqrt();
-            assert!((length - 1.004).abs() < 1e-9, "an edge is one block long");
-        }
     }
 }

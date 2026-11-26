@@ -33,9 +33,7 @@ static CHOICE: Mutex<BTreeMap<u128, bool>> = Mutex::new(BTreeMap::new());
 /// The furnace's fractions of experience left over, per player, carried to their next ore.
 static CARRY: Mutex<BTreeMap<u128, f32>> = Mutex::new(BTreeMap::new());
 
-fn lock<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
-    m.lock().unwrap_or_else(|e| e.into_inner())
-}
+use crate::kit::sync::lock;
 
 /// A player's break begins: remember whether its drops are smelted, and read the furnace's
 /// recipes if they changed (a reload).

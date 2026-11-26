@@ -2,12 +2,12 @@
 //! up to `PER_TICK` more blocks through `PlayerRef::destroy_block`, so every block breaks as the
 //! player's own (loot for the held tool and its enchantments, wear, the mined statistic, hunger,
 //! spawn protection, other mods' cancels).
-use crate::bag;
+use crate::kit;
 use crate::payloads::{self, Caps};
 use crate::perks::Comforts;
 use crate::plan::{self, Kind, Plan, kind_at, natural_leaf};
 use crate::shape::{self, Pos};
-use mod_api::{BlockState, ComponentId, Hand, Host, HostBlockStates, ItemPlace, LevelRef, PlayerRef, ServerHost, Tag, VarInt};
+use mod_api::{BlockState, Hand, Host, HostBlockStates, ItemPlace, LevelRef, PlayerRef, ServerHost, VarInt};
 #[allow(unused_imports)]
 use mod_api::prelude::*;
 use std::cell::Cell;
@@ -58,8 +58,7 @@ fn jobs<R>(f: impl FnOnce(&mut Vec<Job>) -> R) -> R {
 
 /// A player's comforts (their tags, or everything with `all_comforts`).
 pub fn comforts(host: &dyn mod_api::Host, p: PlayerRef) -> Comforts {
-    let all = host.setting(crate::MOD_ID, crate::setting::ALL_COMFORTS).is_some_and(|v| v.trim() == "true");
-    Comforts::of(&p.entity().tags(host).unwrap_or_default(), all)
+    kit::comforts::read(host, crate::MOD_ID, p, Comforts::of)
 }
 
 /// The held item's id, and how many more uses it has before it breaks (None: it doesn't wear).
@@ -70,12 +69,7 @@ fn held(host: &mut dyn ServerHost, p: PlayerRef) -> Option<(String, Option<i64>)
 /// As `held`, for either hand.
 pub fn held_in(host: &mut dyn ServerHost, p: PlayerRef, hand: Hand) -> Option<(String, Option<i64>)> {
     let kind = ItemPlace::PlayerHand { player: p.uuid(), hand }.resource(host)?;
-    let int = |id: &str| match ComponentId::new(id).and_then(|c| kind.value(&*host, &c)) {
-        Some(Tag::Int(n)) => Some(i64::from(n)),
-        _ => None,
-    };
-    let left = int("minecraft:max_damage").map(|max| max - int("minecraft:damage").unwrap_or(0));
-    Some((kind.item().id(&*host), left))
+    Some((kind.item().id(&*host), kit::wear::uses_left(&*host, &kind)))
 }
 
 /// A player broke the block `state` at `pos`: with the comfort and the right tool, the rest of
@@ -187,7 +181,7 @@ fn fall(host: &mut dyn ServerHost, p: PlayerRef, level: LevelRef, leaves: &mut L
     for _ in 0..LEAF_PER_TICK {
         let Some(pos) = queue.pop() else { return false };
         match level.destroy_block(host, pos, true, None, bag) {
-            Ok(Some(stacks)) if bag => bag::give(host, p, level, pos, stacks),
+            Ok(Some(stacks)) if bag => kit::inventory::give(host, crate::MOD_ID, p, level, pos, stacks),
             Ok(_) => {}
             Err(e) => eprintln!("[gathering] a leaf at {pos:?}: {e:?}"),
         }
@@ -233,18 +227,13 @@ fn tell(host: &mut dyn ServerHost) {
 mod tests {
     use std::path::Path;
 
-    /// Both languages hold the same keys, and every node and perk the tree shows has its line.
+    /// Every node, perk and setting shown has its line (that both languages hold the same keys
+    /// is the workspace's `tools/lang_gate.py`).
     #[test]
-    fn every_shown_key_is_in_both_languages() {
+    fn every_shown_key_has_its_line() {
         let root = Path::new(env!("CARGO_MANIFEST_DIR"));
-        let keys = |lang: &str| -> Vec<String> {
-            let text = std::fs::read_to_string(root.join(format!("assets/gathering/lang/{lang}.json"))).unwrap();
-            let mut k: Vec<String> = text.lines().filter_map(|l| l.trim().strip_prefix('"')?.split('"').next().map(str::to_owned)).collect();
-            k.sort();
-            k
-        };
-        let (en, ar) = (keys("en_us"), keys("ar_sa"));
-        assert_eq!(en, ar);
+        let text = std::fs::read_to_string(root.join("assets/gathering/lang/en_us.json")).unwrap();
+        let en: Vec<String> = text.lines().filter_map(|l| l.trim().strip_prefix('"')?.split('"').next().map(str::to_owned)).collect();
         let tree = crate::tree_files();
         let quoted = |field: &str| -> Vec<String> {
             tree.split(&format!("\"{field}\"")).skip(1).filter_map(|r| r.split('"').nth(1).map(str::to_owned)).collect()
@@ -255,9 +244,8 @@ mod tests {
         for tag in quoted("tag") {
             assert!(en.contains(&format!("skills.perk.{tag}")), "no perk line for {tag}");
         }
-        assert!(en.contains(&format!("gathering.config.{}", crate::setting::ALL_COMFORTS)));
         for key in crate::setting::COMFORTS {
-            assert!(en.contains(&format!("gathering.config.{key}")), "no line for the setting {key}");
+            assert!(en.contains(&key.spec(crate::MOD_ID).label), "no line for the setting {}", key.key);
         }
     }
 }
