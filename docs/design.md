@@ -137,6 +137,8 @@ animals bred (1) and fish caught (2).
 | Ranch I, 7 cows (5 adults within 3 blocks, 1 at 6, 1 calf), 10 wheat | the 5 near adults in love, 5 wheat paid; the far cow and the calf left |
 | Ranch I, shears on one of 4 sheep (plus one far, one already shorn) | the 4 near sheep shorn, the far one kept its wool, shears worn |
 | Auto-Fishing, Lure III, 3 bites | 3 cod in the inventory, bobber gone each time, rod damage 1 a catch, 2 experience, `fish_caught` +1 a fish |
+| Saplings, 3 oak saplings dropped on grass | after 5 s one planted where they lay; the other 2 wait (no sapling right beside another) |
+| Saplings on stone / with the comfort off | stay items |
 
 How each works:
 - **Auto-Smelt** changes the drops in `block_drops` (the level's own hook, before anything
@@ -150,6 +152,10 @@ How each works:
   `LoveCause`, so the breeding is theirs; wool from `minecraft:shearing/sheep/<colour>`, since the
   `shearing/sheep` dispatcher rolls nothing from a mod's roll, measured). Shears stop one use
   before breaking.
+- **Saplings** start a 5 s wait on `item_spawn`; then, on the ground, over `#minecraft:supports_vegetation`
+  (the game's own rule for plants: in 26.3 grass is not in `#minecraft:dirt`, measured), with air
+  above, no sapling in the 8 spots around, and a player with the comfort within 48 blocks, one of
+  the stack is planted (looked at again up to 8 times while it waits).
 - **Auto-Fishing** cancels the bite (`player_fish` state 1) and, the next tick, rolls
   `minecraft:gameplay/fishing` at the bobber with the bobber as the loot entity (open-water
   treasure kept) and the rod as tool. Luck of the Sea's bonus is not added (the roll has no luck).
