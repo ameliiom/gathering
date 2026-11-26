@@ -167,3 +167,59 @@ impl Hooks for Mod {
         if fishing::bite(host, event) { Flow::Cancel } else { Flow::Continue }
     }
 }
+
+/// The Skills trees Gathering adds its nodes to (no tree of its own: the comforts extend Mining
+/// and Farming), and their files' text joined, for the tests.
+#[cfg(test)]
+pub(crate) const EXTENDS: [(&str, &str); 2] = [("mining", "skills:mining"), ("farming", "skills:farming")];
+
+#[cfg(test)]
+pub(crate) fn tree_files() -> String {
+    let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("data/gathering/skills");
+    EXTENDS.iter().map(|(file, _)| std::fs::read_to_string(dir.join(format!("{file}.json"))).unwrap()).collect::<Vec<_>>().join("
+")
+}
+
+#[cfg(test)]
+mod tree_tests {
+    use super::EXTENDS;
+    use std::collections::BTreeSet;
+    use std::path::Path;
+
+    /// Each `"<field>": "value"` string in a tree file, in order.
+    fn strings(text: &str, field: &str) -> Vec<String> {
+        text.split(&format!("\"{field}\"")).skip(1).filter_map(|r| r.split('"').nth(1).map(str::to_owned)).collect()
+    }
+
+    /// Each node's grid spot, whitespace removed: `[1,4]`.
+    fn spots(text: &str) -> Vec<String> {
+        text.split("\"at\"").skip(1).filter_map(|r| Some(r[r.find('[')?..=r.find(']')?].split_whitespace().collect())).collect()
+    }
+
+    /// Gathering ships no tree of its own: only additions to Skills' trees, and each node keeps
+    /// clear of the Skills tree's own ids and grid spots (read from the Skills checkout beside
+    /// this one when it is there).
+    #[test]
+    fn nodes_extend_skills_trees_without_clashing() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+        let dir = root.join("data/gathering/skills");
+        let files: BTreeSet<String> = std::fs::read_dir(&dir).unwrap().map(|e| e.unwrap().file_name().to_string_lossy().into_owned()).collect();
+        let wanted: BTreeSet<String> = EXTENDS.iter().map(|(f, _)| format!("{f}.json")).collect();
+        assert_eq!(files, wanted, "only extension files, one per Skills tree");
+        let skills = root.join("../skills/assets/skills/packs/defaults/data/skills/skills");
+        for (file, tree) in EXTENDS {
+            let ours = std::fs::read_to_string(dir.join(format!("{file}.json"))).unwrap();
+            assert_eq!(strings(&ours, "extends"), vec![tree.to_string()]);
+            assert!(strings(&ours, "title").iter().all(|t| t.starts_with("gathering.node.")), "a tree title in {file}");
+            let theirs = std::fs::read_to_string(skills.join(format!("{file}.json"))).unwrap_or_default();
+            let mut ids: BTreeSet<String> = strings(&theirs, "id").into_iter().collect();
+            let mut taken: BTreeSet<String> = spots(&theirs).into_iter().collect();
+            let (our_ids, our_spots) = (strings(&ours, "id"), spots(&ours));
+            assert_eq!(our_ids.len(), our_spots.len());
+            for (id, at) in our_ids.iter().zip(&our_spots) {
+                assert!(ids.insert(id.clone()), "{tree}: node id {id} taken");
+                assert!(taken.insert(at.clone()), "{tree}: spot {at} of {id} taken");
+            }
+        }
+    }
+}

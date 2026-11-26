@@ -11,16 +11,16 @@ For [Horizon](https://playhorizon.dev) (Minecraft: Java Edition 26.3 in Rust). T
 - **Your tool is safe**: a vein or a tree stops while the tool has one use left.
 
 ## Comforts from Skills
-With [Skills](https://github.com/ameliiom/skills) 0.2 or later, a tree **Gathering** grows as you mine ores, cut logs, harvest crops, breed animals and fish:
+With [Skills](https://github.com/ameliiom/skills) 0.2 or later, the comforts are skills in Skills' own trees: veins, trees, Auto-Smelt and Into The Bag in **Mining** (which now also grows from logs), the rest in **Farming** (which also grows from right-click harvests). From 0.4.0 there is no separate Gathering tree, so points spent there before are gone: earn them again in Mining and Farming.
 - **Vein Miner** I/II/III: 8, 24, 64 more ores.
 - **Timber** I/II: 32, 256 more logs.
 - **Leaf Blower**: a felled tree's leaves fall at once, with their saplings and apples.
 - **Wide Harvest** I/II: a right-click harvests a 3×3, then 5×5 square.
 - **Into The Bag**: what a vein, a tree or a harvest drops goes straight into your inventory.
-- **Auto-Smelt** (after Vein Miner III): mined ores drop their smelted result, as many as the ore gave (Fortune counts), with the furnace's experience. Sneak to mine as usual.
-- **Self-Planting Saplings** (after Leaf Blower): a sapling lying on grass or dirt for 5 seconds plants itself, one per 2 blocks.
+- **Auto-Smelt** (Mining, after Vein Miner III): mined ores drop their smelted result, as many as the ore gave (Fortune counts), with the furnace's experience. Sneak to mine as usual.
+- **Self-Planting Saplings** (Farming): a sapling lying on grass or dirt for 5 seconds plants itself, one per 2 blocks.
 - **Wide Planting** I/II and **Whole Field**: seeds on farmland plant the empty farmland around, 3×3, 5×5, then the whole field; one seed each, from your inventory.
-- **Ranch** I/II/III: feeding an animal feeds the adults of its kind within 3, 5, 7 blocks (one food each); shears shear the sheep around too, stopping before the shears break.
+- **Ranch** I/II/III (Farming, after Herder): feeding an animal feeds the adults of its kind within 3, 5, 7 blocks (one food each); shears shear the sheep around too, stopping before the shears break.
 - **Auto-Fishing**: when a fish bites, the catch goes into your inventory and the bobber comes back; the rod takes its one use.
 
 Without Skills, the server setting **All comforts without Skills** opens them all. Each of the last five can be turned off in the mod's settings.

@@ -1,0 +1,183 @@
+{
+  "extends": "skills:farming",
+  "sources": [
+    {
+      "stat": "minecraft:custom",
+      "of": "gathering:harvested",
+      "xp": 2
+    }
+  ],
+  "nodes": [
+    {
+      "id": "ranch_1",
+      "title": "gathering.node.ranch_1",
+      "icon": "minecraft:wheat",
+      "at": [
+        1,
+        2
+      ],
+      "cost": 1,
+      "needs": [
+        "herder"
+      ],
+      "perks": [
+        {
+          "tag": "gathering.ranch.3"
+        }
+      ]
+    },
+    {
+      "id": "ranch_2",
+      "title": "gathering.node.ranch_2",
+      "icon": "minecraft:shears",
+      "at": [
+        2,
+        2
+      ],
+      "cost": 2,
+      "needs": [
+        "ranch_1"
+      ],
+      "perks": [
+        {
+          "tag": "gathering.ranch.5"
+        }
+      ]
+    },
+    {
+      "id": "ranch_3",
+      "title": "gathering.node.ranch_3",
+      "icon": "minecraft:lead",
+      "at": [
+        3,
+        2
+      ],
+      "cost": 3,
+      "needs": [
+        "ranch_2"
+      ],
+      "perks": [
+        {
+          "tag": "gathering.ranch.7"
+        }
+      ]
+    },
+    {
+      "id": "harvest_1",
+      "title": "gathering.node.harvest_1",
+      "icon": "minecraft:wheat",
+      "at": [
+        0,
+        3
+      ],
+      "cost": 1,
+      "perks": [
+        {
+          "tag": "gathering.harvest.3"
+        }
+      ]
+    },
+    {
+      "id": "harvest_2",
+      "title": "gathering.node.harvest_2",
+      "icon": "minecraft:hay_block",
+      "at": [
+        1,
+        3
+      ],
+      "cost": 3,
+      "needs": [
+        "harvest_1"
+      ],
+      "perks": [
+        {
+          "tag": "gathering.harvest.5"
+        }
+      ]
+    },
+    {
+      "id": "plant_1",
+      "title": "gathering.node.plant_1",
+      "icon": "minecraft:wheat_seeds",
+      "at": [
+        0,
+        4
+      ],
+      "cost": 1,
+      "needs": [
+        "harvest_1"
+      ],
+      "perks": [
+        {
+          "tag": "gathering.plant.3"
+        }
+      ]
+    },
+    {
+      "id": "plant_2",
+      "title": "gathering.node.plant_2",
+      "icon": "minecraft:carrot",
+      "at": [
+        1,
+        4
+      ],
+      "cost": 2,
+      "needs": [
+        "plant_1"
+      ],
+      "perks": [
+        {
+          "tag": "gathering.plant.5"
+        }
+      ]
+    },
+    {
+      "id": "plant_3",
+      "title": "gathering.node.plant_3",
+      "icon": "minecraft:iron_hoe",
+      "at": [
+        2,
+        4
+      ],
+      "cost": 3,
+      "needs": [
+        "plant_2"
+      ],
+      "perks": [
+        {
+          "tag": "gathering.plant.field"
+        }
+      ]
+    },
+    {
+      "id": "fishing",
+      "title": "gathering.node.fishing",
+      "icon": "minecraft:fishing_rod",
+      "at": [
+        0,
+        5
+      ],
+      "cost": 3,
+      "perks": [
+        {
+          "tag": "gathering.fishing"
+        }
+      ]
+    },
+    {
+      "id": "saplings",
+      "title": "gathering.node.saplings",
+      "icon": "minecraft:oak_sapling",
+      "at": [
+        1,
+        5
+      ],
+      "cost": 2,
+      "perks": [
+        {
+          "tag": "gathering.saplings"
+        }
+      ]
+    }
+  ]
+}

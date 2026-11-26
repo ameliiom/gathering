@@ -136,8 +136,7 @@ mod tests {
     /// The tree file gives exactly the tags Gathering reads, and every comfort has a node.
     #[test]
     fn the_shipped_tree_gives_exactly_the_tags_gathering_reads() {
-        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("data/gathering/skills/gathering.json");
-        let text = std::fs::read_to_string(path).unwrap();
+        let text = crate::tree_files();
         let given: Vec<String> = text
             .split("\"tag\"")
             .skip(1)

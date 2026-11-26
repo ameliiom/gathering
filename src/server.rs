@@ -245,7 +245,7 @@ mod tests {
         };
         let (en, ar) = (keys("en_us"), keys("ar_sa"));
         assert_eq!(en, ar);
-        let tree = std::fs::read_to_string(root.join("data/gathering/skills/gathering.json")).unwrap();
+        let tree = crate::tree_files();
         let quoted = |field: &str| -> Vec<String> {
             tree.split(&format!("\"{field}\"")).skip(1).filter_map(|r| r.split('"').nth(1).map(str::to_owned)).collect()
         };

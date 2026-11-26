@@ -34,7 +34,7 @@ Fortune and Silk Touch, the tool's wear, statistics and hunger.
 - **The tool is safe**: a vein or tree stops one use before the tool would break (measured: see §6).
 - Drops fall where each block was, as the game drops them (or into the bag with the comfort).
 
-## 4. The Gathering tree in Skills
+## 4. The Gathering tree in Skills (until 0.3.0; see §11)
 
 | Always | Earned in Gathering |
 |---|---|
@@ -159,3 +159,26 @@ How each works:
 - **Auto-Fishing** cancels the bite (`player_fish` state 1) and, the next tick, rolls
   `minecraft:gameplay/fishing` at the bobber with the bobber as the loot entity (open-water
   treasure kept) and the rod as tool. Luck of the Sea's bonus is not added (the roll has no luck).
+
+## 11. No tree of its own (0.4.0, 2026-11-26)
+
+The owner's rule: new work extends what exists and never repeats a meaning. Gathering's own tree
+repeated Skills' Mining and Farming, so it is retired: `data/gathering/skills/mining.json` and
+`farming.json` add the same nodes (same tags, so no code changed) with
+`{"extends": "skills:mining"}` and `{"extends": "skills:farming"}`.
+
+| Skills tree | Gathering's nodes (grid spots free beside the tree's own) | Sources it adds |
+|---|---|---|
+| Mining (Haste, Diver, Fireproof, Lucky in rows 0-3) | row 4 Vein Miner I-III, Auto-Smelt; row 5 Timber I-II, Leaf Blower, Into The Bag | logs mined (1): Mining counts pickaxe and shovel blocks and ores, not logs |
+| Farming (Hearty, Fortune, Herder in rows 0-2) | Ranch I-III beside Herder (Ranch I needs it); row 3 Wide Harvest I-II; row 4 Wide Planting I-II, Whole Field; row 5 Auto-Fishing, Self-Planting Saplings | crops harvested by right-click (2, as Farming's broken ripe crops): the harvest replaces the crop without a break, so Farming would not see it. Animals bred and fish caught Farming already counts. |
+
+A test keeps it so: only extension files, each extending its Skills tree, no tree title, and no
+node id or grid spot that the Skills tree (read from the checkout beside this one) already uses.
+Progress in the old Gathering tree is lost; its tags are removed by Skills on the next join and
+earned again in Mining and Farming.
+
+Measured in the game (2026-11-26): the Skills screen has no Gathering tab; Mining shows Vein Miner
+I-III, Auto-Smelt, Timber I-II, Leaf Blower and Into The Bag in rows 5 and 6 under Lucky, and
+Farming shows Ranch beside Herder, Wide Harvest, Wide Planting, Auto-Fishing and the saplings.
+The test player's old tags were gone after joining (Skills' reconcile). Unlocking Vein Miner I in
+Mining gave `gathering.vein.8`, and breaking one ore of a 6-ore iron vein took all 6.
