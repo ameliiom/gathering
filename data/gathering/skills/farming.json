@@ -11,7 +11,7 @@
     {
       "id": "ranch_1",
       "title": "gathering.node.ranch_1",
-      "icon": "minecraft:wheat",
+      "icon": "minecraft:leather",
       "at": [
         1,
         2
@@ -47,7 +47,7 @@
     {
       "id": "ranch_3",
       "title": "gathering.node.ranch_3",
-      "icon": "minecraft:lead",
+      "icon": "minecraft:white_wool",
       "at": [
         3,
         2
@@ -152,7 +152,7 @@
     {
       "id": "fishing",
       "title": "gathering.node.fishing",
-      "icon": "minecraft:fishing_rod",
+      "icon": "minecraft:cod",
       "at": [
         0,
         5
@@ -169,10 +169,13 @@
       "title": "gathering.node.saplings",
       "icon": "minecraft:oak_sapling",
       "at": [
-        1,
-        5
+        3,
+        4
       ],
       "cost": 2,
+      "needs": [
+        "plant_3"
+      ],
       "perks": [
         {
           "tag": "gathering.saplings"
